@@ -1,6 +1,7 @@
-# Service-Execution
+# pcasvc executed
 Get last execution from PcaSvc Service & PcaClient from every process 
 
-(last version : +3.4K download)
-
-[![Github All Releases](https://img.shields.io/github/downloads/Zack-src/Service-Execution/total.svg)]()
+- TODO:
+  1- Add a digital signaure check to each file
+  2- Add a GUI/WebGUI
+  3- Add journal replacement chekcer to each file 
