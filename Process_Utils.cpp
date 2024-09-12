@@ -1,6 +1,6 @@
-#include "Include.h"
+ï»¿#include "Include.h"
 
-__int64 Get_Service_PID(const char* name) 
+__int64 Get_Service_PID(const char* name)
 {
 
 	auto shandle = OpenSCManagerA(0, 0, 0),
@@ -18,7 +18,7 @@ __int64 Get_Service_PID(const char* name)
 
 }
 
-__int64 privilege(const char* priv) 
+__int64 privilege(const char* priv)
 {
 
 	HANDLE thandle;
@@ -27,7 +27,7 @@ __int64 privilege(const char* priv)
 
 	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &thandle)) return 0;
 
-	if (!LookupPrivilegeValue(0, priv, &identidier)) return 0;
+	if (!LookupPrivilegeValueA(0, priv, &identidier)) return 0;
 
 	privileges.PrivilegeCount = 1;
 	privileges.Privileges[0].Luid = identidier;
@@ -50,7 +50,7 @@ std::vector<std::string> extract_paths(const std::string& input) {
 		size_t start = pos + 16;
 		size_t end = input.find(',', start);
 		std::string path = input.substr(start, end - start);
-		// Vérifier si le chemin commence par une lettre de lecteur valide
+		// Vï¿½rifier si le chemin commence par une lettre de lecteur valide
 		if (path.length() >= 3 && isalpha(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/')) {
 			paths.push_back(path);
 		}
@@ -140,6 +140,72 @@ std::string get_service_name(DWORD process_id) {
 	return "";
 }
 
+std::string getDigitalSignature(const std::string& filePath) {
+	WCHAR wideFilePath[MAX_PATH];
+	MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, wideFilePath, MAX_PATH);
+
+	if (GetFileAttributesW(wideFilePath) == INVALID_FILE_ATTRIBUTES) {
+		return "Deleted";
+	}
+
+	WINTRUST_FILE_INFO fileInfo;
+	ZeroMemory(&fileInfo, sizeof(fileInfo));
+	fileInfo.cbStruct = sizeof(WINTRUST_FILE_INFO);
+	fileInfo.pcwszFilePath = wideFilePath;
+
+	GUID guidAction = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+
+	WINTRUST_DATA winTrustData;
+	ZeroMemory(&winTrustData, sizeof(winTrustData));
+	winTrustData.cbStruct = sizeof(winTrustData);
+	winTrustData.dwUIChoice = WTD_UI_NONE;
+	winTrustData.fdwRevocationChecks = WTD_REVOKE_NONE;
+	winTrustData.dwUnionChoice = WTD_CHOICE_FILE;
+	winTrustData.dwStateAction = WTD_STATEACTION_VERIFY;
+	winTrustData.pFile = &fileInfo;
+
+	LONG lStatus = WinVerifyTrust(NULL, &guidAction, &winTrustData);
+
+	std::string result = "Not signed";
+
+	if (lStatus == ERROR_SUCCESS) {
+		CRYPT_PROVIDER_DATA const* psProvData = WTHelperProvDataFromStateData(winTrustData.hWVTStateData);
+		if (psProvData) {
+			CRYPT_PROVIDER_DATA* nonConstProvData = const_cast<CRYPT_PROVIDER_DATA*>(psProvData);
+			CRYPT_PROVIDER_SGNR* pProvSigner = WTHelperGetProvSignerFromChain(nonConstProvData, 0, FALSE, 0);
+			if (pProvSigner) {
+				CRYPT_PROVIDER_CERT* pProvCert = WTHelperGetProvCertFromChain(pProvSigner, 0);
+				if (pProvCert && pProvCert->pCert) {
+					char subjectName[256];
+					CertNameToStrA(pProvCert->pCert->dwCertEncodingType,
+						&pProvCert->pCert->pCertInfo->Subject,
+						CERT_X500_NAME_STR,
+						subjectName,
+						sizeof(subjectName));
+
+					std::string subject(subjectName);
+					std::transform(subject.begin(), subject.end(), subject.begin(), ::tolower);
+
+					if (subject.find("manthe industries, llc") != std::string::npos) {
+						result = "Not signed (vapeclient)";
+					}
+					else if (subject.find("slinkware") != std::string::npos) {
+						result = "Not signed (slinky)";
+					}
+					else {
+						result = "Signed    ";
+					}
+				}
+			}
+		}
+	}
+
+	winTrustData.dwStateAction = WTD_STATEACTION_CLOSE;
+	WinVerifyTrust(NULL, &guidAction, &winTrustData);
+
+	return result;
+}
+
 void getLastLaunchTime(const std::string& path) {
 	HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (hFile == INVALID_HANDLE_VALUE) {
@@ -156,7 +222,7 @@ void getLastLaunchTime(const std::string& path) {
 	FileTimeToSystemTime(&lastAccessTime, &stUTC);
 	SystemTimeToTzSpecificLocalTime(nullptr, &stUTC, &stLocal);
 
-	std::cout << "(" << stLocal.wDay << "/" << stLocal.wMonth << "/" << stLocal.wYear << " " << stLocal.wHour << ":" << std::setw(2) << std::setfill('0') << stLocal.wMinute << ")   ";
+	std::cout << "Last acces: (" << stLocal.wDay << "/" << stLocal.wMonth << "/" << stLocal.wYear << " " << stLocal.wHour << ":" << std::setw(2) << std::setfill('0') << stLocal.wMinute << ")   ";
 
 	CloseHandle(hFile);
 }

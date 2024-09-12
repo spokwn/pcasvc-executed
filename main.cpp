@@ -3,9 +3,9 @@
 int main() {
 
 
-	SetConsoleTitleA("Service-Execution, by github.com/Zack-src");
+	SetConsoleTitleA("Service-Execution, forked by espouken");
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	privilege(SE_DEBUG_NAME);
+	privilege("SE_DEBUG_NAME");
 
 	std::vector<DWORD> process_ids = get_all_process_ids();
 
@@ -18,37 +18,48 @@ int main() {
 			if (!pcaclient_content.empty()) {
 				std::vector<std::string> paths = extract_paths(pcaclient_content);
 
-				if (!paths.empty()) {
-					std::string process_name = get_process_name(process_id);
-					std::string service_name = process_name == "svchost.exe" ? get_service_name(process_id) : "";
+                if (!paths.empty()) {
+                    std::string process_name = get_process_name(process_id);
+                    std::string service_name = process_name == "svchost.exe" ? get_service_name(process_id) : "";
 
-					std::cout << process_name;
-					if (!service_name.empty()) {
-						std::cout << " (Service: " << service_name << ")";
-					}
-					std::cout << " (" << process_id << ")" << std::endl;
+                    std::cout << process_name;
+                    if (!service_name.empty()) {
+                        std::cout << " (Service: " << service_name << ")";
+                    }
+                    std::cout << " (" << process_id << ")" << std::endl;
 
-					for (const std::string& path : paths) {
+                    for (const std::string& path : paths) {
 
-						if (file_exists(path))
-						{
-							SetConsoleTextAttribute(hConsole, 2);
-							std::cout << "\tFile is present   ";
-						}
-						else
-						{
-							SetConsoleTextAttribute(hConsole, 4);
-							std::cout << "\tFile is deleted   ";
-						}
-						SetConsoleTextAttribute(hConsole, 7);
+                        std::string signatureStatus = getDigitalSignature(path);
 
-						getLastLaunchTime(path);
-						std::cout << path << std::endl;
+                        if (file_exists(path)) {
+                            SetConsoleTextAttribute(hConsole, 2);
+                            std::cout << "\tFile is present   ";
+                        }
+                        else {
+                            SetConsoleTextAttribute(hConsole, 4);
+                            std::cout << "\tFile is deleted   ";
+                        }
 
-					}
+                        if (signatureStatus == "Signed    ") {
+                            SetConsoleTextAttribute(hConsole, 2);
+                        }
+                        else {
+                            SetConsoleTextAttribute(hConsole, 4);
+                        }
 
-					std::cout << std::endl;
-				}
+                        std::cout << signatureStatus << "   ";
+
+                        SetConsoleTextAttribute(hConsole, 7);
+                        std::cout << path << "      ";
+
+                        getLastLaunchTime(path);
+                        std::cout << std::endl;
+                    }
+
+                    std::cout << std::endl;
+                }
+
 			}
 		}
 	}

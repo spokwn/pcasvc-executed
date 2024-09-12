@@ -40,33 +40,65 @@ std::vector<std::string> Scan_PcaSvc()
 
 void Get_PcaSvc_File(HANDLE hConsole)
 {
-	std::vector<std::string>executions = Scan_PcaSvc();
-	if (executions[0] == "0" || !executions.size())
-		std::cout << "PcaSvc Not Found";
+    std::vector<std::string> executions = Scan_PcaSvc();
+    if (executions.empty() || executions[0] == "0")
+    {
+        std::cout << "PcaSvc Not Found";
+        return;
+    }
 
+    std::cout << "PcaSvc\n";
+    std::map<std::string, int> Lmap;
 
-	std::cout << "PcaSvc\n";
-	std::map<std::string, int> Lmap;
-	for (std::string path : executions) {
-		if (Lmap[path] == NULL) {
+    for (const std::string& path : executions)
+    {
+        if (Lmap[path] == 0)
+        {
+            Lmap[path] = 1;
 
-			Lmap[path] = 1;
+            std::string signatureStatus = getDigitalSignature(path);
 
-			if (file_exists(path))
-			{
-				SetConsoleTextAttribute(hConsole, 2);
-				std::cout << "\tFile is present   ";
-			}
-			else 
-			{
-				SetConsoleTextAttribute(hConsole, 4);
-				std::cout << "\tFile is deleted   ";
-			}
-			
-			SetConsoleTextAttribute(hConsole, 7);
+            if (signatureStatus == "Deleted")
+            {
+                SetConsoleTextAttribute(hConsole, 4);
+                std::cout << "\tFile is deleted   ";
 
-			getLastLaunchTime(path);
-			std::cout << path << std::endl;
-		}
-	}
+                SetConsoleTextAttribute(hConsole, 7);
+                std::cout << path;
+            }
+            else
+            {
+                if (file_exists(path))
+                {
+                    SetConsoleTextAttribute(hConsole, 2);
+                    std::cout << "\tFile is present   ";
+                }
+                else
+                {
+                    SetConsoleTextAttribute(hConsole, 4);
+                    std::cout << "\tFile status unknown   ";
+                }
+
+                if (signatureStatus == "Signed    ")
+                {
+                    SetConsoleTextAttribute(hConsole, 2);
+                }
+                else
+                {
+                    SetConsoleTextAttribute(hConsole, 4);
+                }
+                std::cout << "" << signatureStatus << "   ";
+
+                SetConsoleTextAttribute(hConsole, 7);
+
+                SetConsoleTextAttribute(hConsole, 7);
+                std::cout << path << "   ";
+
+                getLastLaunchTime(path);
+            }
+            std::cout << std::endl;
+
+            
+        }
+    }
 }
