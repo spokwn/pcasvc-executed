@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <map>
 #include <vector>
@@ -10,14 +12,12 @@
 #include <Psapi.h>
 #include <iomanip>
 
-
 #pragma comment(lib, "Wintrust.lib")
 #pragma comment(lib, "Crypt32.lib")
 
 __int64 Get_Service_PID(const char* name);
 __int64 privilege(const char* priv);
 void Get_PcaSvc_File(HANDLE hConsole);
-
 
 std::string getDigitalSignature(const std::string& filePath);
 std::vector<std::string> extract_paths(const std::string& input);
@@ -27,3 +27,16 @@ std::string find_pcaclient(HANDLE process_handle);
 std::string get_process_name(DWORD process_id);
 std::string get_service_name(DWORD process_id);
 void getLastLaunchTime(const std::string& path);
+
+struct GenericRule {
+    std::string name;
+    std::string rule;
+};
+
+extern std::vector<GenericRule> genericRules;
+
+void addGenericRule(const std::string& name, const std::string& rule);
+
+void initializeGenericRules();
+
+bool scan_with_yara(const std::string& path, std::vector<std::string>& matched_rules);

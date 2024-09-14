@@ -40,9 +40,6 @@ __int64 privilege(const char* priv)
 
 }
 
-
-/*chatGPT*/
-
 std::vector<std::string> extract_paths(const std::string& input) {
 	std::vector<std::string> paths;
 	size_t pos = 0;
@@ -50,7 +47,6 @@ std::vector<std::string> extract_paths(const std::string& input) {
 		size_t start = pos + 16;
 		size_t end = input.find(',', start);
 		std::string path = input.substr(start, end - start);
-		// V�rifier si le chemin commence par une lettre de lecteur valide
 		if (path.length() >= 3 && isalpha(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/')) {
 			paths.push_back(path);
 		}

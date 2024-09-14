@@ -90,15 +90,21 @@ void Get_PcaSvc_File(HANDLE hConsole)
                 std::cout << "" << signatureStatus << "   ";
 
                 SetConsoleTextAttribute(hConsole, 7);
-
-                SetConsoleTextAttribute(hConsole, 7);
                 std::cout << path << "   ";
 
                 getLastLaunchTime(path);
+
+                std::vector<std::string> matched_rules;
+                bool yara_match = scan_with_yara(path, matched_rules);
+                if (yara_match) {
+                    SetConsoleTextAttribute(hConsole, 4);
+                    for (const auto& rule : matched_rules) {
+                        std::cout << "   [Flagged " << rule << "]";
+                    }
+                    SetConsoleTextAttribute(hConsole, 7);
+                }
             }
             std::cout << std::endl;
-
-            
         }
     }
 }
