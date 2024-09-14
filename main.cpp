@@ -1,9 +1,13 @@
 #include "Include.h"
 
+
+
 int main() {
     SetConsoleTitleA("Service-Execution, forked by espouken");
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    privilege("SE_DEBUG_NAME");
+    if (!privilege("SeDebugPrivilege")) {
+        return 1;
+    }
 
     initializeGenericRules();
 
