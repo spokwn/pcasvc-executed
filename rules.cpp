@@ -24,9 +24,6 @@ rule A
 }
 )");
 
-
-
-
     addGenericRule("Generic B", R"(
         rule B
         {
@@ -40,7 +37,6 @@ rule A
                 any of them
         }
     )");
-
     // MAS
 }
 
@@ -51,6 +47,10 @@ int yara_callback(YR_SCAN_CONTEXT* context, int message, void* message_data, voi
         matched_rules->push_back(rule->identifier);
     }
     return CALLBACK_CONTINUE;
+}
+
+void compiler_error_callback(int error_level, const char* file_name, int line_number, const YR_RULE* rule, const char* message, void* user_data) {
+    fprintf(stderr, "Error: %s at line %d: %s\n", file_name ? file_name : "N/A", line_number, message);
 }
 
 bool scan_with_yara(const std::string& path, std::vector<std::string>& matched_rules) {
@@ -64,6 +64,8 @@ bool scan_with_yara(const std::string& path, std::vector<std::string>& matched_r
         yr_finalize();
         return false;
     }
+
+    yr_compiler_set_callback(compiler, compiler_error_callback, NULL);
 
     for (const auto& rule : genericRules) {
         result = yr_compiler_add_string(compiler, rule.rule.c_str(), NULL);

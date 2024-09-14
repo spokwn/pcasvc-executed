@@ -2,39 +2,38 @@
 
 std::vector<std::string> Scan_PcaSvc()
 {
+    __int64 pid = Get_Service_PID("PcaSvc");
+    if (!pid) return { "0" };
 
-	__int64 pid = Get_Service_PID("PcaSvc");
-	if (!pid) return { "0" };
+    HANDLE phandle = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
+    if (!phandle) return { "0" };
 
-	HANDLE phandle = OpenProcess(PROCESS_ALL_ACCESS, 0, pid);
-	if (!phandle) return { "0" };
+    std::vector<std::string>list; MEMORY_BASIC_INFORMATION info;
 
-	std::vector<std::string>list; MEMORY_BASIC_INFORMATION info;
+    for (static __int64 address = 0; VirtualQueryEx(phandle, (LPVOID)address, &info, sizeof(info)); address += info.RegionSize)
+    {
+        if (info.State != MEM_COMMIT) continue;
 
-	for (static __int64 address = 0; VirtualQueryEx(phandle, (LPVOID)address, &info, sizeof(info)); address += info.RegionSize)
-	{
-		if (info.State != MEM_COMMIT) continue;
+        std::string memory;
+        memory.resize(info.RegionSize);
 
-		std::string memory;
-		memory.resize(info.RegionSize);
+        if (!ReadProcessMemory(phandle, (LPVOID)address, &memory[0], info.RegionSize, 0)) continue;
 
-		if (!ReadProcessMemory(phandle, (LPVOID)address, &memory[0], info.RegionSize, 0)) continue;
+        for (__int64 pos = 0; pos != std::string::npos; pos = memory.find(":\\", pos + 1))
+        {
+            std::string path;
 
-		for (__int64 pos = 0; pos != std::string::npos; pos = memory.find(":\\", pos + 1))
-		{
-			std::string path;
+            for (__int64 x = pos - 1; memory[x] > 32 && memory[x] < 123; x++)
+                path.push_back(memory[x]);
 
-			for (__int64 x = pos - 1; memory[x] > 32 && memory[x] < 123; x++)
-				path.push_back(memory[x]);
+            if (path[path.length() - 4] != '.') {
+                continue;
+            }
 
-			if (path[path.length() - 4] != '.') {
-				continue;
-			}
-
-			list.push_back(path);
-		}
-	}
-	return list;
+            list.push_back(path);
+        }
+    }
+    return list;
 }
 
 
@@ -92,14 +91,14 @@ void Get_PcaSvc_File(HANDLE hConsole)
                 SetConsoleTextAttribute(hConsole, 7);
                 std::cout << path << "   ";
 
-                getLastLaunchTime(path);
+                //getLastLaunchTime(path);
 
                 std::vector<std::string> matched_rules;
                 bool yara_match = scan_with_yara(path, matched_rules);
                 if (yara_match) {
                     SetConsoleTextAttribute(hConsole, 4);
                     for (const auto& rule : matched_rules) {
-                        std::cout << "   [Flagged " << rule << "]";
+                        std::cout << "[Flagged " << rule << "]";
                     }
                     SetConsoleTextAttribute(hConsole, 7);
                 }

@@ -41,19 +41,18 @@ int main() {
                         }
                         std::cout << signatureStatus << "   ";
                         SetConsoleTextAttribute(hConsole, 7);
-                        std::cout << path << "      ";
-                        getLastLaunchTime(path);
+                        std::cout << path << "   ";
+                        //getLastLaunchTime(path);
 
                         std::vector<std::string> matched_rules;
                         bool yara_match = scan_with_yara(path, matched_rules);
                         if (yara_match) {
                             SetConsoleTextAttribute(hConsole, 4);
                             for (const auto& rule : matched_rules) {
-                                std::cout << "   [Flagged " << rule << "]";
+                                std::cout << "[Flagged " << rule << "]";
                             }
                             SetConsoleTextAttribute(hConsole, 7);
                         }
-
                         std::cout << std::endl;
                     }
                     std::cout << std::endl;
