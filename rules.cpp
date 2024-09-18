@@ -24,19 +24,6 @@ rule A
 }
 )");
 
-    addGenericRule("Generic B", R"(
-        rule B
-        {
-            strings:
-                $a = "ImGui" nocase
-                $ImGui = {49 00 6D 00 47 00 75 00 69 00} // ImGui
-                $imgui = {69 00 6D 00 67 00 75 00 69 00}
-                $IMGUI = {49 00 4D 00 47 00 55 00 49 00}
-                $b = "ImGui" wide
-            condition:
-                any of them
-        }
-    )");
     // MAS
 }
 

@@ -20,24 +20,40 @@ __int64 Get_Service_PID(const char* name)
 
 __int64 privilege(const char* priv)
 {
-
 	HANDLE thandle;
-	LUID identidier;
+	LUID identifier;
 	TOKEN_PRIVILEGES privileges{};
 
-	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &thandle)) return 0;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &thandle)) {
+		std::cerr << "OpenProcessToken error: " << GetLastError() << std::endl;
+		return 0;
+	}
 
-	if (!LookupPrivilegeValueA(0, priv, &identidier)) return 0;
+	if (!LookupPrivilegeValueA(nullptr, priv, &identifier)) {
+		std::cerr << "LookupPrivilegeValueA error: " << GetLastError() << std::endl;
+		CloseHandle(thandle);
+		return 0;
+	}
 
 	privileges.PrivilegeCount = 1;
-	privileges.Privileges[0].Luid = identidier;
+	privileges.Privileges[0].Luid = identifier;
 	privileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-	if (!AdjustTokenPrivileges(thandle, 0, &privileges, sizeof(privileges), NULL, NULL))
+	if (!AdjustTokenPrivileges(thandle, FALSE, &privileges, sizeof(privileges), nullptr, nullptr)) {
+		std::cerr << "AdjustTokenPrivileges error: " << GetLastError() << std::endl;
+		CloseHandle(thandle);
 		return 0;
+	}
 
-	CloseHandle(thandle); return 1;
+	DWORD error = GetLastError();
+	if (error == ERROR_NOT_ALL_ASSIGNED) {
+		std::cerr << "privileges error at assign." << std::endl;
+		CloseHandle(thandle);
+		return 0;
+	}
 
+	CloseHandle(thandle);
+	return 1;
 }
 
 std::vector<std::string> extract_paths(const std::string& input) {
