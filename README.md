@@ -18,7 +18,7 @@ I've added a generic checker foreach file appearing that is present.
 6. Generic C: very poor generic protection detect for C# files.
 
 All of them should be kinda safe, but dont panic just from seeing them.
-Still, the A2 generic will sometimes cause a "false flagg", tho its not intended to be fixed, beacause it can break the detection for real cheats.
+Still, the A2 generic will sometimes cause a "false flag", tho its not intended to be fixed, beacause it can break the detection for real cheats.
 
 ## TODO:
 
