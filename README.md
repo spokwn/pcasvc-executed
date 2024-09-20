@@ -1,29 +1,31 @@
 # PcaSvc Executed
 
-Get the last execution from the **PcaSvc** Service & **PcaClient** from every process.
+Retrieves the last execution information from the **PcaSvc** Service & **PcaClient** for every process.
 
 ## What does it do?
 
-Currently it as said before, parses the last execution from pcaclient form every process and also from pcasvc.
-I've added a digital signature checker foreach file present, if its not present it will say "Deleted", it also detect the digital signature of slinky and vape.
-I've added a generic checker foreach file appearing that is present.
+- Parses the last execution from PcaClient for every process
+- Parses the last execution from PcaSvc
+- Performs digital signature checks for each file present
+  - Reports "Deleted" if the file is not found
+  - Detects specific digital signatures (e.g., Slinky and Vape)
+- Applies generic checks to each present file
 
 ## Generics:
 
-1. Generic A: basic strings for autoclickers.
-2. Generic A2: basic imports for autoclickers.
-3. Generic B: generic protection detect for non C# files.
-4. Generic B2: generic protection detect for non C# files.
-5. Generic B3: generic protection detect for non C# files.
-6. Generic C: very poor generic protection detect for C# files.
+1. **Generic A**: Basic strings for autoclickers
+2. **Generic A2**: Basic imports for autoclickers
+3. **Generic B**: Generic protection detection for non-C# files
+4. **Generic B2**: Generic protection detection for non-C# files
+5. **Generic B3**: Generic protection detection for non-C# files
+6. **Generic C**: Basic generic protection detection for C# files
 
-All of them should be kinda safe, but dont panic just from seeing them.
-Still, the A2 generic will sometimes cause a "false flag", tho its not intended to be fixed, beacause it can break the detection for real cheats.
+Note: All generics should be relatively safe, but don't panic if they trigger. A2 generic may cause occasional "false flags", which are not intended to be fixed to maintain detection of real cheats.
 
 ## TODO:
 
-1. ~Add a digital signature check to each file.~
-2. Add a GUI/WebGUI.
-3. ~Add file info checker, strings, imports, yara rules~.
-4. Add a journal replacement checker to each file.
-5. Improve generics for C# files.
+- [x] Add a digital signature check to each file
+- [ ] Add a GUI/WebGUI
+- [x] Add file info checker, strings, imports, YARA rules
+- [ ] Add a journal replacement checker to each file
+- [ ] Improve generics for C# files
