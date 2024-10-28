@@ -30,3 +30,7 @@ Note: All generics should be relatively safe, but don't panic if they trigger. A
 - [x] Add file info checker, strings, imports, YARA rules
 - [ ] Add a journal replacement checker to each file
 - [ ] Add a GUI/WebGUI
+
+## NOTE: 
+
+this project got deleted & reuploaded bc i messed up and published the "private" generics and specifics, my bad for losing old versions.
