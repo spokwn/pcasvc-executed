@@ -1,6 +1,5 @@
-#include "Include.h"
+﻿#include "Include.h"
 #include "yara.h"
-
 std::vector<GenericRule> genericRules;
 
 void addGenericRule(const std::string& name, const std::string& rule) {
@@ -8,7 +7,7 @@ void addGenericRule(const std::string& name, const std::string& rule) {
 }
 
 void initializeGenericRules() {
-    addGenericRule("Generic A", R"(
+  addGenericRule("Generic A", R"(
 import "pe"
 rule A
 {
@@ -20,7 +19,7 @@ rule A
         $e = /double_click/i ascii wide
         $f = /Jitter Click/i ascii wide
         $g = /Butterfly Click/i ascii wide
-        
+
     condition:
         pe.is_pe and
         any of them
@@ -66,9 +65,9 @@ rule sA
         any of them
 }
 )");
+
     // MAS
 }
-
 
 int yara_callback(YR_SCAN_CONTEXT* context, int message, void* message_data, void* user_data) {
     if (message == CALLBACK_MSG_RULE_MATCHING) {

@@ -1,4 +1,7 @@
 ﻿#include "Include.h"
+#include "Replaceparser.h"
+
+std::string replaceParserDir;
 
 __int64 Get_Service_PID(const char* name)
 {
@@ -16,6 +19,211 @@ __int64 Get_Service_PID(const char* name)
 	CloseServiceHandle(shandle_);
 	return ssp.dwProcessId;
 
+}
+
+struct ReplaceResult {
+	std::string filename;
+	std::string replaceType;
+	std::string details;
+};
+
+static std::map<std::pair<std::string, std::string>, ReplaceResult> gLatestResults;
+
+std::string ToLower(const std::string& str) {
+	std::string result = str;
+	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+	return result;
+}
+
+bool WriteExeToTemp(const std::string& replaceParserDir) {
+	std::string exePath = replaceParserDir + "\\replaceparser.exe";
+
+	std::ofstream exeFile(exePath, std::ios::binary);
+	if (!exeFile) {
+		std::cerr << "Failed to create executable file: " << exePath << std::endl;
+		return false;
+	}
+
+	exeFile.write(reinterpret_cast<const char*>(ReplaceParserHex), sizeof(ReplaceParserHex));
+	exeFile.close();
+
+	return true;
+}
+
+bool DeleteReplaceParserDir(const std::string& replaceParserDir) {
+	try {
+		std::filesystem::remove_all(replaceParserDir);
+		return true;
+	}
+	catch (const std::filesystem::filesystem_error& e) {
+		std::cerr << "Error deleting directory " << replaceParserDir << ": " << e.what() << std::endl;
+		return false;
+	}
+}
+
+bool ExecuteReplaceParser(const std::string& replaceParserDir) {
+	std::string exePath = replaceParserDir + "\\replaceparser.exe";
+	std::string replacesTxtPath = replaceParserDir + "\\replaces.txt";
+	std::string commandLine = "\"" + exePath + "\" \"" + replacesTxtPath + "\"";
+
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+
+	HANDLE hNull = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hNull == INVALID_HANDLE_VALUE) {
+		std::cerr << "Failed to open NUL device." << std::endl;
+		return false;
+	}
+
+	si.dwFlags |= STARTF_USESTDHANDLES;
+	si.hStdOutput = hNull;
+	si.hStdError = hNull;
+
+	if (!CreateProcessA(
+		NULL,
+		const_cast<char*>(commandLine.c_str()),
+		NULL,
+		NULL,
+		TRUE,
+		0,
+		NULL,
+		replaceParserDir.c_str(),
+		&si,
+		&pi
+	)) {
+		std::cerr << "Failed to execute replaceparser.exe. Error: " << GetLastError() << std::endl;
+		CloseHandle(hNull);
+		return false;
+	}
+
+	WaitForSingleObject(pi.hProcess, INFINITE);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	CloseHandle(hNull);
+
+	return true;
+}
+
+
+void FindReplace(const std::string& inputFileName) {
+	std::string logPath = replaceParserDir + "\\replaces.txt";
+	std::string inputFileNameLower = ToLower(inputFileName);
+	std::ifstream file(logPath);
+	if (!file.is_open()) {
+		return;
+	}
+	std::string line;
+	while (std::getline(file, line)) {
+		if (line.empty()) continue;
+		std::string replaceType, pattern;
+		if (line.rfind("Explorer replacement found in file: ", 0) == 0) {
+			replaceType = "Explorer";
+			pattern = "Explorer replacement found in file: ";
+		}
+		else if (line.rfind("Copy replacement found in file: ", 0) == 0) {
+			replaceType = "Copy";
+			pattern = "Copy replacement found in file: ";
+		}
+		else if (line.rfind("Type pattern found in file: ", 0) == 0) {
+			replaceType = "Type";
+			pattern = "Type pattern found in file: ";
+		}
+		else {
+			continue;
+		}
+		size_t pos = line.find(pattern);
+		if (pos == std::string::npos) continue;
+		std::string foundFileName = line.substr(pos + pattern.size());
+		std::string foundFileNameLower = ToLower(foundFileName);
+		if (foundFileNameLower == inputFileNameLower) {
+			bool openBraceFound = false;
+			std::string detailsCollected;
+			std::string detailsLine;
+			while (std::getline(file, detailsLine)) {
+				if (!openBraceFound) {
+					size_t bracePos = detailsLine.find('{');
+					if (bracePos != std::string::npos) {
+						openBraceFound = true;
+						if (bracePos + 1 < detailsLine.size()) {
+							detailsCollected += detailsLine.substr(bracePos + 1) + "\n";
+						}
+					}
+				}
+				else {
+					size_t closePos = detailsLine.find('}');
+					if (closePos != std::string::npos) {
+						if (closePos > 0) {
+							detailsCollected += detailsLine.substr(0, closePos);
+						}
+						break;
+					}
+					else {
+						detailsCollected += detailsLine + "\n";
+					}
+				}
+			}
+			std::pair<std::string, std::string> key = { foundFileName, replaceType };
+			gLatestResults[key] = { foundFileName, replaceType, detailsCollected };
+		}
+	}
+	file.close();
+}
+
+void WriteAllReplacementsToFileAndPrintSummary() {
+	if (gLatestResults.empty()) {
+		std::cout << "No replacements found." << std::endl;
+		return;
+	}
+	std::string outputFileName = "replaces.txt";
+	std::ofstream outFile(outputFileName);
+	if (!outFile.is_open()) {
+		return;
+	}
+	for (auto& kv : gLatestResults) {
+		outFile << "Found replacement type: " << kv.second.replaceType << "\n";
+		outFile << "In file: " << kv.second.filename << "\n";
+		outFile << "Replacement details:\n" << kv.second.details << "\n\n";
+	}
+	outFile.close();
+	std::cout << "Found " << gLatestResults.size() << " replacements, check " << outputFileName << std::endl;
+}
+
+
+bool initReplaceParser() {
+	char tempPathBuffer[MAX_PATH];
+	DWORD tempPathLen = GetTempPathA(MAX_PATH, tempPathBuffer);
+	if (tempPathLen == 0 || tempPathLen > MAX_PATH) {
+		std::cerr << "Failed to get temporary directory." << std::endl;
+		return 1;
+	}
+
+	std::string tempPath = std::string(tempPathBuffer);
+	if (tempPath.back() == '\\' || tempPath.back() == '/') {
+		tempPath.pop_back();
+	}
+
+	replaceParserDir = tempPath + "\\replaceparser";
+	if (!CreateDirectoryA(replaceParserDir.c_str(), NULL)) {
+		if (GetLastError() != ERROR_ALREADY_EXISTS) {
+			std::cerr << "Failed to create directory: " << replaceParserDir << std::endl;
+			return 1;
+		}
+	}
+	if (!WriteExeToTemp(replaceParserDir) || !ExecuteReplaceParser(replaceParserDir)) {
+		return false;
+	}
+	return true;
+}
+
+bool DestroyReplaceParser() {
+	if (!DeleteReplaceParserDir(replaceParserDir)) {
+		std::cerr << "There was a problem deleting the replaceparser folder." << std::endl;
+		return false;
+	}
+	return true;
 }
 
 __int64 privilege(const char* priv)
@@ -167,6 +375,85 @@ std::string get_service_name(DWORD process_id) {
 	return "";
 }
 
+static bool VerifyFileViaCatalog(LPCWSTR filePath)
+{
+	HANDLE hCatAdmin = NULL;
+	if (!CryptCATAdminAcquireContext(&hCatAdmin, NULL, 0))
+		return false;
+
+	HANDLE hFile = CreateFileW(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		CryptCATAdminReleaseContext(hCatAdmin, 0);
+		return false;
+	}
+
+	DWORD dwHashSize = 0;
+	if (!CryptCATAdminCalcHashFromFileHandle(hFile, &dwHashSize, NULL, 0))
+	{
+		CloseHandle(hFile);
+		CryptCATAdminReleaseContext(hCatAdmin, 0);
+		return false;
+	}
+
+	BYTE* pbHash = new BYTE[dwHashSize];
+	if (!CryptCATAdminCalcHashFromFileHandle(hFile, &dwHashSize, pbHash, 0))
+	{
+		delete[] pbHash;
+		CloseHandle(hFile);
+		CryptCATAdminReleaseContext(hCatAdmin, 0);
+		return false;
+	}
+
+	CloseHandle(hFile);
+
+	CATALOG_INFO catInfo = { 0 };
+	catInfo.cbStruct = sizeof(catInfo);
+
+	HANDLE hCatInfo = CryptCATAdminEnumCatalogFromHash(hCatAdmin, pbHash, dwHashSize, 0, NULL);
+	bool isCatalogSigned = false;
+
+	while (hCatInfo && CryptCATCatalogInfoFromContext(hCatInfo, &catInfo, 0))
+	{
+		WINTRUST_CATALOG_INFO wtc = {};
+		wtc.cbStruct = sizeof(wtc);
+		wtc.pcwszCatalogFilePath = catInfo.wszCatalogFile;
+		wtc.pbCalculatedFileHash = pbHash;
+		wtc.cbCalculatedFileHash = dwHashSize;
+		wtc.pcwszMemberFilePath = filePath;
+
+		WINTRUST_DATA wtd = {};
+		wtd.cbStruct = sizeof(wtd);
+		wtd.dwUnionChoice = WTD_CHOICE_CATALOG;
+		wtd.pCatalog = &wtc;
+		wtd.dwUIChoice = WTD_UI_NONE;
+		wtd.fdwRevocationChecks = WTD_REVOKE_NONE;
+		wtd.dwProvFlags = 0;
+		wtd.dwStateAction = WTD_STATEACTION_VERIFY;
+
+		GUID action = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+		LONG res = WinVerifyTrust(NULL, &action, &wtd);
+
+		wtd.dwStateAction = WTD_STATEACTION_CLOSE;
+		WinVerifyTrust(NULL, &action, &wtd);
+
+		if (res == ERROR_SUCCESS)
+		{
+			isCatalogSigned = true;
+			break;
+		}
+		hCatInfo = CryptCATAdminEnumCatalogFromHash(hCatAdmin, pbHash, dwHashSize, 0, &hCatInfo);
+	}
+
+	if (hCatInfo)
+		CryptCATAdminReleaseCatalogContext(hCatAdmin, hCatInfo, 0);
+
+	CryptCATAdminReleaseContext(hCatAdmin, 0);
+	delete[] pbHash;
+
+	return isCatalogSigned;
+}
+
 std::string getDigitalSignature(const std::string& filePath) {
 	WCHAR wideFilePath[MAX_PATH];
 	MultiByteToWideChar(CP_UTF8, 0, filePath.c_str(), -1, wideFilePath, MAX_PATH);
@@ -190,7 +477,7 @@ std::string getDigitalSignature(const std::string& filePath) {
 	winTrustData.dwUnionChoice = WTD_CHOICE_FILE;
 	winTrustData.dwStateAction = WTD_STATEACTION_VERIFY;
 	winTrustData.pFile = &fileInfo;
-
+	 
 	LONG lStatus = WinVerifyTrust(NULL, &guidAction, &winTrustData);
 
 	std::string result = "Not signed";
@@ -226,13 +513,17 @@ std::string getDigitalSignature(const std::string& filePath) {
 			}
 		}
 	}
+	else {
+		if (VerifyFileViaCatalog(wideFilePath)) {
+			result = "Signed    ";
+		}
+	}
 
 	winTrustData.dwStateAction = WTD_STATEACTION_CLOSE;
 	WinVerifyTrust(NULL, &guidAction, &winTrustData);
 
 	return result;
 }
-
 void getLastLaunchTime(const std::string& path) {
 	HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (hFile == INVALID_HANDLE_VALUE) {

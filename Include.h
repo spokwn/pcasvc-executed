@@ -14,10 +14,13 @@
 #include <algorithm>
 #include <thread>
 #include <atomic>
+#include <mscat.h>
+#include <fstream>
+#include <wincrypt.h>
+#include <filesystem>
 
 #pragma comment(lib, "Wintrust.lib")
 #pragma comment(lib, "Crypt32.lib")
-
 
 __int64 Get_Service_PID(const char* name);
 __int64 privilege(const char* priv);
@@ -34,9 +37,20 @@ void getLastLaunchTime(const std::string& path);
 std::string getOwnPath();
 bool iequals(const std::string& a, const std::string& b);
 
+bool initReplaceParser();
+bool DestroyReplaceParser();
+void FindReplace(const std::string& inputFileName);
+void WriteAllReplacementsToFileAndPrintSummary();
+
 struct GenericRule {
     std::string name;
     std::string rule;
+};
+
+struct YaraError {
+    std::string file_name;
+    int line_number;
+    std::string message;
 };
 
 extern std::vector<GenericRule> genericRules;

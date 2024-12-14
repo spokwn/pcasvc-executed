@@ -91,7 +91,16 @@ void Get_PcaSvc_File(HANDLE hConsole)
                 SetConsoleTextAttribute(hConsole, 7);
                 std::cout << path << "   ";
 
-                //getLastLaunchTime(path);
+                std::string filename;
+                size_t pos = path.find_last_of("\\/");
+                if (pos != std::string::npos) {
+                    filename = path.substr(pos + 1);
+                }
+                else {
+                    filename = path;
+                }
+
+                FindReplace(filename);
 
                 if (signatureStatus != "Signed    ") {
                     if (!iequals(path, getOwnPath())) {
@@ -104,7 +113,6 @@ void Get_PcaSvc_File(HANDLE hConsole)
                             }
                             SetConsoleTextAttribute(hConsole, 7);
                         }
-
                     }
                 }
             }

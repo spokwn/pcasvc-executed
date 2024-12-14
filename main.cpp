@@ -3,11 +3,13 @@
 int main() {
     SetConsoleTitleA("Service-Execution, forked by espouken");
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
     if (!privilege("SeDebugPrivilege")) {
         return 1;
     }
 
     initializeGenericRules();
+    initReplaceParser();
 
     std::vector<DWORD> process_ids = get_all_process_ids();
     for (DWORD process_id : process_ids) {
@@ -25,6 +27,7 @@ int main() {
                         std::cout << " (Service: " << service_name << ")";
                     }
                     std::cout << " (" << process_id << ")" << std::endl;
+
                     for (const std::string& path : paths) {
                         std::string signatureStatus = getDigitalSignature(path);
                         if (file_exists(path)) {
@@ -44,7 +47,18 @@ int main() {
                         std::cout << signatureStatus << "   ";
                         SetConsoleTextAttribute(hConsole, 7);
                         std::cout << path << "   ";
-                        //getLastLaunchTime(path);
+
+                        std::string filename;
+                        size_t pos = path.find_last_of("\\/");
+                        if (pos != std::string::npos) {
+                            filename = path.substr(pos + 1);
+                        }
+                        else {
+                            filename = path;
+                        }
+
+                        FindReplace(filename);
+
                         if (signatureStatus != "Signed    ") {
                             if (!iequals(path, getOwnPath())) {
                                 std::vector<std::string> matched_rules;
@@ -56,7 +70,6 @@ int main() {
                                     }
                                     SetConsoleTextAttribute(hConsole, 7);
                                 }
-                                
                             }
                         }
                         std::cout << std::endl;
@@ -66,7 +79,12 @@ int main() {
             }
         }
     }
+
     Get_PcaSvc_File(hConsole);
+
+    DestroyReplaceParser();
+    WriteAllReplacementsToFileAndPrintSummary();
+
     std::cout << "\n\n" << "------End------";
     std::cin.ignore();
     return 0;
