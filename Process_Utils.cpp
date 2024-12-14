@@ -173,24 +173,35 @@ void FindReplace(const std::string& inputFileName) {
 }
 
 void WriteAllReplacementsToFileAndPrintSummary() {
-	if (gLatestResults.empty()) {
-		std::cout << "No replacements found." << std::endl;
-		return;
-	}
-	std::string outputFileName = "replaces.txt";
-	std::ofstream outFile(outputFileName);
-	if (!outFile.is_open()) {
-		return;
-	}
-	for (auto& kv : gLatestResults) {
-		outFile << "Found replacement type: " << kv.second.replaceType << "\n";
-		outFile << "In file: " << kv.second.filename << "\n";
-		outFile << "Replacement details:\n" << kv.second.details << "\n\n";
-	}
-	outFile.close();
-	std::cout << "Found " << gLatestResults.size() << " replacements, check " << outputFileName << std::endl;
-}
+    try {
+        if (gLatestResults.empty()) {
+            std::cout << "No replacements found." << std::endl;
+            return;
+        }
 
+        std::string outputFileName = "replaces.txt";
+        std::ofstream outFile(outputFileName);
+
+        if (!outFile.is_open()) {
+            throw std::ios_base::failure("Failed to open the output file: " + outputFileName);
+        }
+
+        for (auto& kv : gLatestResults) {
+            outFile << "Found replacement type: " << kv.second.replaceType << "\n";
+            outFile << "In file: " << kv.second.filename << "\n";
+            outFile << "Replacement details:\n" << kv.second.details << "\n\n";
+        }
+
+        outFile.close();
+        std::cout << "Found " << gLatestResults.size() << " replacements, check " << outputFileName << std::endl;
+    } catch (const std::ios_base::failure& e) {
+        std::cerr << "I/O error: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "An unexpected error occurred: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "An unknown error occurred." << std::endl;
+    }
+}
 
 bool initReplaceParser() {
 	char tempPathBuffer[MAX_PATH];
