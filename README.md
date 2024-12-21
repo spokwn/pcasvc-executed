@@ -40,8 +40,10 @@ Retrieves the last execution information from the **PcaSvc** Service & **PcaClie
 24. **Generic G4**: Advanced generic detection for suspicious injector executables.
 25. **Generic G5**: Advanced generic detection for suspicious injector executables.
 26. **Generic G6**: Advanced generic detection for suspicious injector executables.
-27. **Specific A**: Detects some free cheats using strings, this cheats are mostly the ones who didnt flag any generic at some point.
-28. **Specific B**: Detects some paid cheats using advanced methods, it currently just detects 2, but aren't needed as generic already detected them.
+27. **Generic G7**: Advanced generic detection for suspicious PE injector executables.
+28. **Generic G8**: Advanced generic detection for suspicious PE injector executables.
+29. **Specific A**: Detects some free cheats using strings, this cheats are mostly the ones who didnt flag any generic at some point.
+30. **Specific B**: Detects some paid cheats using advanced methods, it currently just detects 2, but aren't needed as generic already detected them.
 
 Note: All generics should be relatively safe, but don't panic if they trigger. A2 and F generics may cause occasional "false flags", which are not intended to be fixed to maintain detection of real cheats, though they were improved lately.
 
