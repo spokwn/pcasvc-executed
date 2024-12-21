@@ -66,7 +66,7 @@ int main() {
                                 if (yara_match) {
                                     SetConsoleTextAttribute(hConsole, 4);
                                     for (const auto& rule : matched_rules) {
-                                        std::cout << "[Flagged " << rule << "]";
+                                        std::cout << "[" << rule << "]";
                                     }
                                     SetConsoleTextAttribute(hConsole, 7);
                                 }
