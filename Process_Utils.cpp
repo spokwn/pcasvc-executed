@@ -173,34 +173,45 @@ void FindReplace(const std::string& inputFileName) {
 }
 
 void WriteAllReplacementsToFileAndPrintSummary() {
-    try {
-        if (gLatestResults.empty()) {
-            std::cout << "No replacements found." << std::endl;
-            return;
-        }
+	try {
+		if (gLatestResults.empty()) {
+			std::cout << "\n\nNo replacements found." << std::endl;
+			return;
+		}
 
-        std::string outputFileName = "replaces.txt";
-        std::ofstream outFile(outputFileName);
+		std::string outputFileName = "replaces.txt";
+		std::ofstream outFile(outputFileName);
 
-        if (!outFile.is_open()) {
-            throw std::ios_base::failure("Failed to open the output file: " + outputFileName);
-        }
+		if (!outFile.is_open()) {
+			throw std::ios_base::failure("Failed to open the output file: " + outputFileName);
+		}
 
-        for (auto& kv : gLatestResults) {
-            outFile << "Found replacement type: " << kv.second.replaceType << "\n";
-            outFile << "In file: " << kv.second.filename << "\n";
-            outFile << "Replacement details:\n" << kv.second.details << "\n\n";
-        }
+		for (const auto& kv : gLatestResults) {
+			outFile << "Found replacement type: " << kv.second.replaceType << "\n";
+			outFile << "In file: " << kv.second.filename << "\n";
+			outFile << "Replacement details:\n" << kv.second.details << "\n\n";
+		}
 
-        outFile.close();
-        std::cout << "Found " << gLatestResults.size() << " replacements, check " << outputFileName << std::endl;
-    } catch (const std::ios_base::failure& e) {
-        std::cerr << "I/O error: " << e.what() << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "An unexpected error occurred: " << e.what() << std::endl;
-    } catch (...) {
-        std::cerr << "An unknown error occurred." << std::endl;
-    }
+		outFile.close();
+
+		std::cout << "\n\nFound " << gLatestResults.size() << " replacements, check " << outputFileName << std::endl;
+
+		std::string command = "start \"\" \"" + outputFileName + "\"";
+		int result = std::system(command.c_str());
+
+		if (result != 0) {
+			std::cerr << "Failed to open the file: " << outputFileName << std::endl;
+		}
+	}
+	catch (const std::ios_base::failure& e) {
+		std::cerr << "I/O error: " << e.what() << std::endl;
+	}
+	catch (const std::exception& e) {
+		std::cerr << "An unexpected error occurred: " << e.what() << std::endl;
+	}
+	catch (...) {
+		std::cerr << "An unknown error occurred." << std::endl;
+	}
 }
 
 bool initReplaceParser() {
