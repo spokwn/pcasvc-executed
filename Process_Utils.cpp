@@ -531,7 +531,8 @@ std::string getDigitalSignature(const std::string& filePath) {
 					std::transform(subject.begin(), subject.end(), subject.begin(), ::tolower);
 
 					if (subject.find("manthe industries, llc") != std::string::npos ||
-						subject.find("slinkware") != std::string::npos) {
+						subject.find("slinkware") != std::string::npos              ||
+						subject.find("amstion limited") != std::string::npos) {
 						result = "Cheat Signature";
 					}
 
